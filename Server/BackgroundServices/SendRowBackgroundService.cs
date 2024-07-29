@@ -8,7 +8,6 @@ namespace Server.BackgroundServices;
 
 public class SendRowBackgroundService : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(1);
     private readonly IGenerator<Product> _productGenerator;
     private readonly IHubContext<SendRowHub, ISendRow> _sendRowHub;
     private readonly IServiceScopeFactory _serviceScopeFactory;
