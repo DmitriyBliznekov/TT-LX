@@ -19,6 +19,7 @@
 
             <ContentPresenter Grid.Row="0" 
                               Grid.Column="0" 
+                              Margin="10,0"
                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
                               SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />

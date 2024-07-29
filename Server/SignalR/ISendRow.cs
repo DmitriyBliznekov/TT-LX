@@ -1,7 +1,8 @@
-﻿namespace Server.SignalR
+﻿using Domain.Models;
+
+namespace Server.SignalR;
+
+public interface ISendRow
 {
-    public interface ISendRow
-    {
-        Task SendRow(string product);
-    }
+    Task SendRow(Product product);
 }

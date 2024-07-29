@@ -1,33 +1,31 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Server.BackgroundServices;
-using Server.SignalR;
 
-namespace Server.Controllers
+namespace Server.Controllers;
+
+[ApiController]
+public class SignalRController : ControllerBase
 {
-    [ApiController]
-    public class SignalRController : ControllerBase
+    private readonly SendRowBackgroundService _sendRowService;
+
+    public SignalRController(SendRowBackgroundService sendRowService) 
+    { 
+        _sendRowService = sendRowService;
+    }
+
+    [HttpGet("/activate_signalr")]
+    public async Task<ActionResult> StartSendRow()
     {
-        private SendRowBackgroundService _sendRowService;
+        await _sendRowService.StartAsync(CancellationToken.None);
 
-        public SignalRController(SendRowBackgroundService sendRowService) 
-        { 
-            _sendRowService = sendRowService;
-        }
+        return Ok();
+    }
 
-        [HttpGet("/activate_signalr")]
-        public async Task<ActionResult> StartSendRow()
-        {
-            await _sendRowService.StartAsync(CancellationToken.None);
+    [HttpGet("/deactivate_signalr")]
+    public async Task<ActionResult> StopSendRow()
+    {
+        await _sendRowService.StopAsync(CancellationToken.None);
 
-            return Ok();
-        }
-
-        [HttpGet("/deactivate_signalr")]
-        public async Task<ActionResult> StopSendRow()
-        {
-            await _sendRowService.StopAsync(CancellationToken.None);
-
-            return Ok();
-        }
+        return Ok();
     }
 }

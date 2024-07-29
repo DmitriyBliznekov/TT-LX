@@ -97,8 +97,8 @@
                         Margin="40,20">
                 <CheckBox HorizontalAlignment="Left" 
                           VerticalAlignment="Center"
-                          Command="{Binding ToggleSignalRCommand}"
-                          IsChecked="{Binding SignalRToggle, Mode=TwoWay}" />
+                          Command="{Binding ToggleMonitorCommand}"
+                          IsChecked="{Binding MonitorToggle, Mode=TwoWay}" />
 
                 <TextBlock Text="Monitor"
                            VerticalAlignment="Center" />

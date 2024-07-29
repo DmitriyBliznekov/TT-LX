@@ -1,5 +1,5 @@
+using Domain.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Server.BackgroundServices;
 using Server.Data;
 using Server.SignalR;
@@ -16,19 +16,16 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<SendRowBackgroundService>();
 builder.Services.AddSingleton<SendRowBackgroundService>();
-builder.Services.AddTransient<ProductGenerator>();
+builder.Services.AddTransient<IGenerator<Product>, ProductGenerator>();
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
-    using var dbContext = scope.ServiceProvider.GetService<ServerContext>();
+    await using var dbContext = scope.ServiceProvider.GetService<ServerContext>();
     await dbContext!.Database.MigrateAsync();
-}
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+
     app.UseSwagger();
     app.UseSwaggerUI();
 }

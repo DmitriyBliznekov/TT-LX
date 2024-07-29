@@ -1,42 +1,41 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Domain.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Server.Data;
-using Server.Models;
 
-namespace Server.Controllers
+namespace Server.Controllers;
+
+[ApiController]
+public class ProductsController : ControllerBase
 {
-    [ApiController]
-    public class ProductsController : ControllerBase
+    private readonly ServerContext _context;
+    private readonly IGenerator<Product> _productGenerator;
+
+    public ProductsController(ServerContext context, IGenerator<Product> productGenerator)
     {
-        private readonly ServerContext _context;
-        private readonly ProductGenerator _productGenerator;
+        _context = context;
+        _productGenerator = productGenerator;
+    }
 
-        public ProductsController(ServerContext context, ProductGenerator productGenerator)
-        {
-            _context = context;
-            _productGenerator = productGenerator;
-        }
+    [HttpGet("/fetch_all")]
+    public async Task<ActionResult<IEnumerable<Product>>> GetProduct() => await _context.Products.ToListAsync();
 
-        [HttpGet("/fetch_all")]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProduct() => await _context.Product.ToListAsync();
+    [HttpPost("/generate_data")]
+    public async Task<ActionResult<Product>> PostProduct([FromQuery] int count)
+    {
+        var products = _productGenerator.GenerateSet(count);
 
-        [HttpPost("/generate_data")]
-        public async Task<ActionResult<Product>> PostProduct([FromQuery] int count)
-        {
-            var products = _productGenerator.GenerateSet(count);
+        await _context.Set<Product>().AddRangeAsync(products);
+        await _context.SaveChangesAsync();
 
-            await _context.Set<Product>().AddRangeAsync(products);
-            await _context.SaveChangesAsync();
+        return Ok();
+    }
 
-            return Ok();
-        }
+    [HttpDelete("/clear_db")]
+    public async Task<IActionResult> ClearDb()
+    {
+        await _context.Products.ExecuteDeleteAsync();
 
-        [HttpDelete("/clear_db")]
-        public async Task<IActionResult> ClearDb()
-        {
-            await _context.Product.ExecuteDeleteAsync();
-
-            return NoContent();
-        }
+        return NoContent();
     }
 }

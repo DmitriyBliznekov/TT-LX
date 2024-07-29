@@ -1,75 +1,61 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Domain.Models;
+using Microsoft.AspNetCore.SignalR;
 using Server.Data;
-using Server.Models;
 using Server.SignalR;
-using System.Text.Json;
+using System.Diagnostics;
 
-namespace Server.BackgroundServices
+namespace Server.BackgroundServices;
+
+public class SendRowBackgroundService : BackgroundService
 {
-    public class SendRowBackgroundService : IHostedService, IDisposable
+    private readonly TimeSpan _interval = TimeSpan.FromSeconds(1);
+    private readonly IGenerator<Product> _productGenerator;
+    private readonly IHubContext<SendRowHub, ISendRow> _sendRowHub;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private bool _ready;
+
+    public SendRowBackgroundService(
+        IHostApplicationLifetime hostApplicationLifetime,
+        IGenerator<Product> productGenerator,
+        IHubContext<SendRowHub, ISendRow> sendRowHub,
+        IServiceScopeFactory serviceScopeFactory)
     {
-        private bool _ready;
-        private readonly ProductGenerator _productGenerator;
-        private Timer _timer = null;
-        private readonly IHubContext<SendRowHub, ISendRow> _sendRowHub;
-        private readonly IServiceScopeFactory _serviceScopeFactory;
+        hostApplicationLifetime.ApplicationStarted.Register(() => _ready = true);
+        _productGenerator = productGenerator;
+        _sendRowHub = sendRowHub;
+        _serviceScopeFactory = serviceScopeFactory;
+    }
 
-        public SendRowBackgroundService(
-            IHostApplicationLifetime hostApplicationLifetime, 
-            ProductGenerator productGenerator, 
-            IHubContext<SendRowHub, ISendRow> sendRowHub,
-            IServiceScopeFactory serviceScopeFactory)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        //Preventing service from starting when IHost starts
+        if (!_ready)
+            return;
+
+        using PeriodicTimer timer = new(TimeSpan.FromSeconds(1));
+        try
         {
-            hostApplicationLifetime.ApplicationStarted.Register(() => _ready = true);
-            _productGenerator = productGenerator;
-            _sendRowHub = sendRowHub;
-            _serviceScopeFactory = serviceScopeFactory;
+            while (await timer.WaitForNextTickAsync(stoppingToken))
+                await GenerateAndSendRow();
         }
-
-        public Task StartAsync(CancellationToken cancellationToken)
+        catch (OperationCanceledException)
         {
-            //Preventing service from starting at IHost start
-            if (!_ready)
-                return Task.CompletedTask;
-
-            if (_timer == null)
-            {
-                _timer = new Timer(
-                    GenerateAndSendRow,
-                    null,
-                    TimeSpan.FromSeconds(0),
-                    TimeSpan.FromSeconds(10));
-            }
-            else
-            {
-                _timer.Change(TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(5));
-            }
-
-            return Task.CompletedTask;
+            Debug.WriteLine("Timed Hosted Service is stopping.");
         }
+    }
 
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            _timer?.Change(Timeout.Infinite, 0);
+    private async Task GenerateAndSendRow()
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetService<ServerContext>();
 
-            return Task.CompletedTask;
-        }
+        if (context == null)
+            return;
 
-        private void GenerateAndSendRow(object obj)
-        {
-            using var scope = _serviceScopeFactory.CreateScope();
-            var context = scope.ServiceProvider.GetService<ServerContext>();
+        var product = _productGenerator.Generate();
+        await context.AddAsync(product);
+        await context.SaveChangesAsync();
 
-            var product = _productGenerator.Generate();
-            context.Product.Add(product);
-            context.SaveChanges();
-            
-            _sendRowHub.Clients.All.SendRow(JsonSerializer.Serialize<Product>(product) + "\u001e");
-        }
-
-        public void Dispose()
-        {
-            _timer?.Dispose();
-        }
+        await _sendRowHub.Clients.All.SendRow(product);
     }
 }

@@ -1,15 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Server.Models;
+﻿using Domain.Models;
+using Microsoft.EntityFrameworkCore;
 
-namespace Server.Data
+namespace Server.Data;
+
+public class ServerContext : DbContext
 {
-    public class ServerContext : DbContext
+    public ServerContext (DbContextOptions<ServerContext> options)
+        : base(options)
     {
-        public ServerContext (DbContextOptions<ServerContext> options)
-            : base(options)
-        {
-        }
-
-        public DbSet<Product> Product { get;  set; }
     }
+
+    public DbSet<Product> Products { get;  set; }
 }

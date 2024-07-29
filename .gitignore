@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /Server/LeverXTestDb.db-shm
 /Server/LeverXTestDb.db-wal
+/Server/LeverXTestDb.db
